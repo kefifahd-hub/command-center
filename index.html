@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Command Center">
+<meta name="theme-color" content="#0F1419">
+<title>Doudi's Command Center</title>
+<link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkRvdWRpJ3MgQ29tbWFuZCBDZW50ZXIiLAogICJzaG9ydF9uYW1lIjogIkNvbW1hbmQiLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBGMTQxOSIsCiAgInRoZW1lX2NvbG9yIjogIiMwRjE0MTkiLAogICJpY29ucyI6IFtdCn0=">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0F1419;
+  --bg2: #1A1F26;
+  --bg3: #242B33;
+  --text: #E7E9EA;
+  --text2: #8B949E;
+  --text3: #4B5563;
+  --accent: #2DD4BF;
+  --red: #EF4444;
+  --amber: #F59E0B;
+  --blue: #3B82F6;
+  --green: #22C55E;
+  --border: rgba(255,255,255,0.06);
+  --radius: 14px;
+  --font: 'Outfit', -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height:100%; overflow:hidden; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  overscroll-behavior: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+
+/* App Shell */
+.app { display:flex; flex-direction:column; height:100dvh; }
+.app-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; scroll-behavior:smooth; }
+
+/* Bottom Nav */
+.bottom-nav {
+  display: flex;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 6px 0 env(safe-area-inset-bottom, 8px);
+}
+.nav-btn {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding: 8px 4px;
+  background:none; border:none; color:var(--text3);
+  font-family:var(--font); font-size:10px; font-weight:500;
+  cursor:pointer; transition: color 0.2s;
+}
+.nav-btn.active { color: var(--accent); }
+.nav-btn svg { width:22px; height:22px; }
+
+/* Header */
+.header {
+  padding: 16px 20px 12px;
+  background: var(--bg);
+  flex-shrink:0;
+  border-bottom: 1px solid var(--border);
+}
+.header-top { display:flex; align-items:center; justify-content:space-between; }
+.header h1 {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.header-sub { font-size:12px; color:var(--text2); margin-top:2px; }
+.settings-btn {
+  width:36px; height:36px; border-radius:10px; border:none;
+  background:var(--bg2); color:var(--text2); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition: background 0.2s;
+}
+
+/* Stats Row */
+.stats { display:flex; gap:8px; padding:12px 20px; }
+.stat-card {
+  flex:1; background:var(--bg2); border-radius:12px; padding:12px 10px; text-align:center;
+}
+.stat-num { font-family:var(--mono); font-size:22px; font-weight:700; }
+.stat-label { font-size:10px; color:var(--text2); margin-top:2px; font-weight:500; letter-spacing:0.03em; }
+.stat-urgent .stat-num { color:var(--red); }
+
+/* Progress */
+.progress-bar {
+  margin: 0 20px 8px;
+  height:4px; background:var(--bg2); border-radius:10px; overflow:hidden;
+}
+.progress-fill {
+  height:100%; border-radius:10px;
+  background: linear-gradient(90deg, var(--accent), var(--green));
+  transition: width 0.4s ease;
+}
+
+/* Filters */
+.filters { display:flex; gap:6px; padding:8px 20px 12px; overflow-x:auto; align-items:center; }
+.filters::-webkit-scrollbar { display:none; }
+.filter-btn {
+  padding:7px 16px; border-radius:20px; border:none;
+  font-family:var(--font); font-size:12px; font-weight:600;
+  cursor:pointer; white-space:nowrap; transition: all 0.2s;
+  background:var(--bg2); color:var(--text2);
+  line-height:1;
+}
+.filter-btn.active { background:var(--text); color:var(--bg); }
+
+/* Category Cards */
+.categories { padding:0 12px 20px; }
+.cat-header {
+  display:flex; align-items:center; gap:12px;
+  padding:13px 14px; border-radius:var(--radius);
+  background:var(--bg2); cursor:pointer; transition:all 0.2s;
+  margin-bottom:4px; border-left:4px solid var(--text3);
+}
+.cat-header.open { border-radius: var(--radius) var(--radius) 0 0; margin-bottom:0; }
+.cat-icon { font-size:18px; flex-shrink:0; }
+.cat-info { flex:1; min-width:0; }
+.cat-name { font-size:14px; font-weight:700; letter-spacing:-0.01em; }
+.cat-count { font-size:10px; color:var(--text2); margin-top:1px; }
+.cat-progress { width:36px; height:4px; background:var(--bg3); border-radius:4px; overflow:hidden; }
+.cat-progress-fill { height:100%; border-radius:4px; transition:width 0.3s; }
+.cat-chevron { transition:transform 0.2s; color:var(--text3); }
+.cat-chevron.open { transform:rotate(180deg); }
+
+.cat-body {
+  background: var(--bg2);
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 4px 8px 10px;
+  margin-bottom: 4px;
+  border-left: 4px solid var(--text3);
+}
+.subgroup-label {
+  font-size:10px; font-weight:700; letter-spacing:0.08em;
+  text-transform:uppercase; padding:10px 12px 4px; color:var(--accent);
+}
+
+/* Task Items */
+.task {
+  display:flex; align-items:flex-start; gap:10px;
+  padding:10px 12px; border-radius:10px;
+  cursor:pointer; transition:all 0.15s;
+  border-left:3px solid transparent;
+}
+.task:active { background:rgba(255,255,255,0.03); }
+.task.done { opacity:0.4; }
+.task.pri-high { border-left-color: var(--red); }
+.task.pri-medium { border-left-color: var(--amber); }
+.task.pri-low { border-left-color: var(--blue); }
+.task.done { border-left-color: transparent; }
+
+.checkbox {
+  width:20px; height:20px; border-radius:6px;
+  border:2px solid var(--bg3); flex-shrink:0; margin-top:1px;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.2s;
+}
+.task.done .checkbox {
+  background:var(--accent); border-color:var(--accent);
+}
+.task-text {
+  font-size:13px; line-height:1.5; letter-spacing:-0.01em; flex:1;
+}
+.task.done .task-text { text-decoration:line-through; color:var(--text2); }
+.task-meta { display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; }
+.badge {
+  font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px;
+  letter-spacing:0.04em;
+}
+.badge-high { background:rgba(239,68,68,0.15); color:var(--red); }
+.badge-medium { background:rgba(245,158,11,0.15); color:var(--amber); }
+.badge-low { background:rgba(59,130,246,0.15); color:var(--blue); }
+.badge-due {
+  background:rgba(255,255,255,0.06); color:var(--text2);
+  font-weight:600;
+}
+
+/* Chat View */
+.chat-container { display:flex; flex-direction:column; height:100%; }
+.chat-messages {
+  flex:1; overflow-y:auto; padding:16px 16px 8px;
+  -webkit-overflow-scrolling:touch;
+}
+.chat-msg {
+  margin-bottom:12px; max-width:85%;
+  animation: msgIn 0.25s ease;
+}
+@keyframes msgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.chat-msg.user { margin-left:auto; }
+.chat-msg.assistant { margin-right:auto; }
+.chat-bubble {
+  padding:10px 14px; border-radius:16px;
+  font-size:13px; line-height:1.55; letter-spacing:-0.01em;
+}
+.chat-msg.user .chat-bubble {
+  background:var(--accent); color:#0F1419;
+  border-bottom-right-radius:4px;
+}
+.chat-msg.assistant .chat-bubble {
+  background:var(--bg3); color:var(--text);
+  border-bottom-left-radius:4px;
+}
+.chat-msg .chat-label {
+  font-size:10px; color:var(--text3); margin-bottom:3px;
+  font-weight:500;
+}
+.chat-msg.user .chat-label { text-align:right; }
+
+.chat-input-row {
+  display:flex; gap:8px; padding:10px 16px;
+  border-top:1px solid var(--border);
+  background:var(--bg);
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+.chat-input {
+  flex:1; padding:10px 14px; border-radius:12px;
+  background:var(--bg2); border:1px solid var(--border);
+  color:var(--text); font-family:var(--font); font-size:14px;
+  outline:none; resize:none;
+}
+.chat-input:focus { border-color: var(--accent); }
+.chat-input::placeholder { color:var(--text3); }
+.chat-send {
+  width:42px; height:42px; border-radius:12px; border:none;
+  background:var(--accent); color:var(--bg);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition: opacity 0.2s; flex-shrink:0;
+}
+.chat-send:disabled { opacity:0.3; }
+.typing-dot { display:inline-block; animation: blink 1.4s infinite both; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%,80%,100%{ opacity:0.2; } 40%{ opacity:1; } }
+
+/* Settings Modal */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  z-index:100; display:flex; align-items:flex-end; justify-content:center;
+  animation: fadeIn 0.2s;
+}
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+.modal {
+  background:var(--bg2); border-radius:20px 20px 0 0;
+  width:100%; max-width:500px; padding:24px 20px 40px;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
+.modal h2 { font-size:18px; font-weight:700; margin-bottom:4px; }
+.modal p { font-size:12px; color:var(--text2); margin-bottom:16px; }
+.modal label { font-size:12px; font-weight:600; color:var(--text2); display:block; margin-bottom:6px; }
+.modal input {
+  width:100%; padding:10px 14px; border-radius:10px;
+  background:var(--bg); border:1px solid var(--border);
+  color:var(--text); font-family:var(--mono); font-size:13px;
+  outline:none; margin-bottom:16px;
+}
+.modal input:focus { border-color:var(--accent); }
+.modal-btns { display:flex; gap:10px; }
+.modal-btn {
+  flex:1; padding:12px; border-radius:10px; border:none;
+  font-family:var(--font); font-size:14px; font-weight:600; cursor:pointer;
+}
+.modal-btn.primary { background:var(--accent); color:var(--bg); }
+.modal-btn.secondary { background:var(--bg3); color:var(--text); }
+</style>
+</head>
+<body>
+
+<div class="app" id="app"></div>
+
+<script>
+// ==================== DATA ====================
+const CATEGORIES = [
+  { id:"job_hunting", name:"Job Hunting", icon:"🎯", color:"#E63946",
+    items:[
+      { id:"jh1", text:"GE Vernova interview — Apr 16", priority:"high", due:"Apr 16" },
+      { id:"jh2", text:"G2 Recruitment — review incoming leads, send CVs, track responses", priority:"medium", due:"" },
+    ]},
+  { id:"buildmind", name:"BuildMind Group", icon:"🏗️", color:"#457B9D",
+    items:[
+      { id:"bm1", text:"Tax filing 2025", priority:"high", due:"" },
+      { id:"bm2", text:"Confirm 2026 accountant offer", priority:"high", due:"" },
+      { id:"bm3", text:"Develop website with new PM tool", priority:"medium", due:"" },
+      { id:"bm4", text:"Automate LinkedIn + Facebook advertising", priority:"medium", due:"" },
+      { id:"bm5", text:"Pitch deck — Battery manufacturing project", priority:"medium", due:"" },
+      { id:"bm6", text:"Pitch deck — BuildMind company", priority:"medium", due:"" },
+    ]},
+  { id:"freelance", name:"Freelance Consulting DE", icon:"💼", color:"#2A9D8F",
+    items:[
+      { id:"fc1", text:"TK health insurance — transition to freiwillige Versicherung", priority:"high", due:"" },
+      { id:"fc2", text:"Receive residual money from Atlas Partners — Invoice #2", priority:"high", due:"" },
+    ]},
+  { id:"serendipity", name:"Serendipity Café", icon:"☕", color:"#E9C46A",
+    items:[
+      { id:"sc1", text:"Business plan & café concept — in progress with Claude", priority:"high", due:"" },
+      { id:"sc2", text:"LUUC Academy — call for business concept support", priority:"high", due:"Apr 16" },
+      { id:"sc3", text:"Site viewings for possible locations", priority:"medium", due:"" },
+      { id:"sc4", text:"Bank financing application", priority:"low", due:"" },
+    ]},
+  { id:"household", name:"Household", icon:"🏠", color:"#F4A261",
+    items:[
+      { id:"hh1", text:"Electricity connection — living room", priority:"high", due:"" },
+      { id:"hh2", text:"Bathroom ceiling joint repair", priority:"medium", due:"" },
+      { id:"hh3", text:"Paint parent room", priority:"medium", due:"" },
+      { id:"hh4", text:"Repair curtain in kid's room", priority:"medium", due:"" },
+      { id:"hh5", text:"New seat for bureau", priority:"low", due:"" },
+      { id:"hh6", text:"Follow-up with house management — windows ceiling tightness", priority:"high", due:"" },
+    ]},
+  { id:"angerburger", name:"Angerburger Allee", icon:"🏢", color:"#264653",
+    subgroups:[
+      { name:"WHG 28 (Fahd)", items:[
+        { id:"aa1", text:"Radiator change — Room 1", priority:"high", due:"" },
+        { id:"aa2", text:"Fix bathroom valve", priority:"medium", due:"" },
+        { id:"aa3", text:"Install shoe drawer — main floor", priority:"low", due:"" },
+        { id:"aa4", text:"Install bathroom element", priority:"low", due:"" },
+        { id:"aa5", text:"Cut kitchen plate so door closes", priority:"medium", due:"" },
+        { id:"aa6", text:"New dishwasher element arrangement", priority:"low", due:"" },
+        { id:"aa7", text:"Heating calculation device", priority:"medium", due:"" },
+        { id:"aa8", text:"Cellar arrangement", priority:"low", due:"" },
+      ]},
+      { name:"WHG 32 (Sabrine)", items:[
+        { id:"ab1", text:"Shoe element", priority:"low", due:"" },
+        { id:"ab2", text:"Bathroom element", priority:"low", due:"" },
+        { id:"ab3", text:"Vacuum cleaner", priority:"low", due:"" },
+        { id:"ab4", text:"Heating calculation device", priority:"medium", due:"" },
+        { id:"ab5", text:"Cellar arrangement", priority:"low", due:"" },
+      ]},
+    ]},
+  { id:"investment", name:"Investment Portfolio", icon:"📈", color:"#6A994E",
+    items:[
+      { id:"ip1", text:"Managed with Claude — weekly check-ins and DCA tracking", priority:"medium", due:"" },
+    ]},
+  { id:"car", name:"Car Maintenance", icon:"🚗", color:"#BC4749",
+    items:[
+      { id:"cm1", text:"Front bumper painting", priority:"medium", due:"" },
+      { id:"cm2", text:"Rear trunk opening repair", priority:"medium", due:"" },
+      { id:"cm3", text:"Car cleaning", priority:"low", due:"" },
+      { id:"cm4", text:"Check with tire guy — shaking after tire change", priority:"high", due:"" },
+      { id:"cm5", text:"TÜV certification — book appointment in May", priority:"high", due:"May" },
+      { id:"cm6", text:"Brakes replacement", priority:"high", due:"" },
+    ]},
+  { id:"leisure", name:"Leisure", icon:"🎿", color:"#9B5DE5",
+    items:[
+      { id:"le1", text:"Archery courses", priority:"medium", due:"" },
+      { id:"le2", text:"Flight simulator — gift from wife", priority:"medium", due:"Next week" },
+      { id:"le3", text:"Escalade with kids", priority:"medium", due:"" },
+      { id:"le4", text:"Camping trip with camper van", priority:"low", due:"" },
+      { id:"le5", text:"Boys trip with friends", priority:"low", due:"End May/June" },
+      { id:"le6", text:"Taylor Swift — Tempelhof venue", priority:"medium", due:"25 May" },
+      { id:"le7", text:"Check with Rami", priority:"medium", due:"" },
+    ]},
+  { id:"apps", name:"Apps & Platforms", icon:"📱", color:"#0077B6",
+    items:[
+      { id:"ap1", text:"PMO Platform — present to friend Monday", priority:"high", due:"Monday" },
+      { id:"ap2", text:"Expense Flow Tracker — review bugs, fix OCR/AI", priority:"high", due:"" },
+      { id:"ap3", text:"Expense Flow Tracker — issue Version 2", priority:"medium", due:"" },
+      { id:"ap4", text:"Atabel — review current features on Base44", priority:"medium", due:"" },
+      { id:"ap5", text:"Atabel — develop with Claude for App Store", priority:"medium", due:"" },
+    ]},
+  { id:"tunisia", name:"Tunisia Investment", icon:"🇹🇳", color:"#D62828",
+    items:[
+      { id:"ti1", text:"Find project investment — max 20K budget", priority:"medium", due:"" },
+      { id:"ti2", text:"Work on house/apartments for mother", priority:"medium", due:"" },
+    ]},
+];
+
+// ==================== STATE ====================
+let state = {
+  view: 'tasks', // tasks | chat | settings
+  checked: {},
+  openCats: {},
+  filter: 'all',
+  apiKey: '',
+  chatMessages: [
+    { role:'assistant', text:'Hey Doudi. I can help you manage your tasks. Try:\n• "Add: call the plumber" → Job Hunting\n• "What\'s urgent?"\n• "Mark GE Vernova done"\n• "Show BuildMind tasks"' }
+  ],
+  chatLoading: false,
+  showSettings: false,
+};
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('doudi-cc-state');
+    if (s) {
+      const parsed = JSON.parse(s);
+      state.checked = parsed.checked || {};
+      state.apiKey = parsed.apiKey || '';
+      state.chatMessages = parsed.chatMessages || state.chatMessages;
+    }
+  } catch(e) {}
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('doudi-cc-state', JSON.stringify({
+      checked: state.checked,
+      apiKey: state.apiKey,
+      chatMessages: state.chatMessages,
+    }));
+  } catch(e) {}
+}
+
+// ==================== HELPERS ====================
+function getAllItems() {
+  let all = [];
+  CATEGORIES.forEach(cat => {
+    if (cat.subgroups) {
+      cat.subgroups.forEach(sg => sg.items.forEach(i => all.push({...i, catId:cat.id, catName:cat.name})));
+    } else if (cat.items) {
+      cat.items.forEach(i => all.push({...i, catId:cat.id, catName:cat.name}));
+    }
+  });
+  return all;
+}
+
+function getStats() {
+  const all = getAllItems();
+  const total = all.length;
+  const done = all.filter(i => state.checked[i.id]).length;
+  const highOpen = all.filter(i => i.priority === 'high' && !state.checked[i.id]).length;
+  return { total, done, highOpen, pct: total > 0 ? Math.round(done/total*100) : 0 };
+}
+
+function getCatStats(cat) {
+  let items = [];
+  if (cat.subgroups) cat.subgroups.forEach(sg => sg.items.forEach(i => items.push(i)));
+  else items = cat.items || [];
+  return { total: items.length, done: items.filter(i => state.checked[i.id]).length };
+}
+
+function filterItems(items) {
+  if (state.filter === 'all') return items;
+  if (state.filter === 'open') return items.filter(i => !state.checked[i.id]);
+  if (state.filter === 'done') return items.filter(i => state.checked[i.id]);
+  return items.filter(i => i.priority === state.filter);
+}
+
+function toggleCheck(id) {
+  state.checked[id] = !state.checked[id];
+  saveState();
+  render();
+}
+
+// ==================== CLAUDE API ====================
+async function sendToClaudeAPI(userMsg) {
+  if (!state.apiKey) {
+    return "You need to set your Anthropic API key first. Tap the ⚙️ icon in the top right to add it.";
+  }
+
+  const allItems = getAllItems();
+  const taskSummary = CATEGORIES.map(cat => {
+    const cs = getCatStats(cat);
+    let items = [];
+    if (cat.subgroups) cat.subgroups.forEach(sg => sg.items.forEach(i => items.push(i)));
+    else items = cat.items || [];
+    const itemList = items.map(i =>
+      `  - [${state.checked[i.id] ? 'x' : ' '}] ${i.text} (${i.priority}${i.due ? ', due: '+i.due : ''})`
+    ).join('\n');
+    return `${cat.name} (${cs.done}/${cs.total} done):\n${itemList}`;
+  }).join('\n\n');
+
+  const systemPrompt = `You are Doudi's personal task assistant embedded in his Command Center app. You help him manage tasks across 11 categories. Be short, direct, no fluff. Here are his current tasks:\n\n${taskSummary}\n\nYou can suggest adding, removing, reprioritizing tasks. When he asks what's urgent, list the high-priority open items. Keep responses under 3-4 sentences unless he asks for detail.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': state.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 600,
+        system: systemPrompt,
+        messages: state.chatMessages
+          .filter(m => m.role !== 'assistant' || state.chatMessages.indexOf(m) > 0)
+          .slice(-10)
+          .map(m => ({ role: m.role, content: m.text }))
+          .concat([{ role: 'user', content: userMsg }])
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      if (resp.status === 401) return "Invalid API key. Check your key in ⚙️ Settings.";
+      return `API error (${resp.status}): ${err.error?.message || 'Unknown error'}`;
+    }
+
+    const data = await resp.json();
+    return data.content.map(c => c.text || '').join('');
+  } catch(e) {
+    return `Connection error: ${e.message}. Check your internet.`;
+  }
+}
+
+async function handleChatSend() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg || state.chatLoading) return;
+
+  input.value = '';
+  state.chatMessages.push({ role:'user', text:msg });
+  state.chatLoading = true;
+  saveState();
+  render();
+
+  const reply = await sendToClaudeAPI(msg);
+  state.chatMessages.push({ role:'assistant', text:reply });
+  state.chatLoading = false;
+  saveState();
+  render();
+
+  setTimeout(() => {
+    const el = document.querySelector('.chat-messages');
+    if (el) el.scrollTop = el.scrollHeight;
+  }, 50);
+}
+
+// ==================== RENDER ====================
+function render() {
+  const stats = getStats();
+  const app = document.getElementById('app');
+
+  let html = '';
+
+  // Header
+  html += `<div class="header">
+    <div class="header-top">
+      <div>
+        <h1>⚡ Command Center</h1>
+        <div class="header-sub">Doudi · Berlin · ${new Date().toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short', year:'numeric'})}</div>
+      </div>
+      <button class="settings-btn" onclick="state.showSettings=true;render();">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+  </div>`;
+
+  if (state.view === 'tasks') {
+    html += `<div class="app-body">`;
+    // Stats
+    html += `<div class="stats">
+      <div class="stat-card"><div class="stat-num">${stats.pct}%</div><div class="stat-label">Complete</div></div>
+      <div class="stat-card"><div class="stat-num">${stats.done}/${stats.total}</div><div class="stat-label">Tasks</div></div>
+      <div class="stat-card stat-urgent"><div class="stat-num">${stats.highOpen}</div><div class="stat-label">Urgent</div></div>
+    </div>`;
+
+    // Progress
+    html += `<div class="progress-bar"><div class="progress-fill" style="width:${stats.pct}%"></div></div>`;
+
+    // Filters
+    const filters = [{k:'all',l:'All'},{k:'open',l:'Open'},{k:'done',l:'Done'},{k:'high',l:'Urgent'}];
+    html += `<div class="filters">${filters.map(f =>
+      `<button class="filter-btn${state.filter===f.k?' active':''}" onclick="state.filter='${f.k}';render();">${f.l}</button>`
+    ).join('')}</div>`;
+
+    // Categories
+    html += `<div class="categories">`;
+    CATEGORIES.forEach(cat => {
+      const cs = getCatStats(cat);
+      const isOpen = state.openCats[cat.id];
+      let allItems = [];
+      if (cat.subgroups) cat.subgroups.forEach(sg => sg.items.forEach(i => allItems.push(i)));
+      else allItems = cat.items || [];
+      const filtered = filterItems(allItems);
+      if (state.filter !== 'all' && filtered.length === 0) return;
+
+      html += `<div class="cat-header${isOpen?' open':''}" style="border-left-color:${cat.color}" onclick="state.openCats['${cat.id}']=!state.openCats['${cat.id}'];render();">
+        <span class="cat-icon">${cat.icon}</span>
+        <div class="cat-info"><div class="cat-name">${cat.name}</div><div class="cat-count">${cs.done}/${cs.total} done</div></div>
+        <div class="cat-progress"><div class="cat-progress-fill" style="width:${cs.total>0?(cs.done/cs.total*100):0}%;background:${cat.color}"></div></div>
+        <svg class="cat-chevron${isOpen?' open':''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>`;
+
+      if (isOpen) {
+        html += `<div class="cat-body" style="border-left-color:${cat.color}">`;
+        if (cat.subgroups) {
+          cat.subgroups.forEach(sg => {
+            const sgf = filterItems(sg.items);
+            if (sgf.length === 0) return;
+            html += `<div class="subgroup-label" style="color:${cat.color}">${sg.name}</div>`;
+            sgf.forEach(item => { html += renderTask(item); });
+          });
+        } else {
+          filtered.forEach(item => { html += renderTask(item); });
+        }
+        html += `</div>`;
+      }
+    });
+    html += `</div>`;
+    html += `</div>`; // close app-body
+
+  } else if (state.view === 'chat') {
+    html += `<div class="chat-container">
+      <div class="chat-messages">`;
+    state.chatMessages.forEach(m => {
+      html += `<div class="chat-msg ${m.role === 'user' ? 'user' : 'assistant'}">
+        <div class="chat-label">${m.role === 'user' ? 'You' : 'Claude'}</div>
+        <div class="chat-bubble">${escapeHtml(m.text).replace(/\n/g,'<br>')}</div>
+      </div>`;
+    });
+    if (state.chatLoading) {
+      html += `<div class="chat-msg assistant">
+        <div class="chat-label">Claude</div>
+        <div class="chat-bubble"><span class="typing-dot">●</span><span class="typing-dot">●</span><span class="typing-dot">●</span></div>
+      </div>`;
+    }
+    html += `</div>
+      <div class="chat-input-row">
+        <input id="chat-input" class="chat-input" placeholder="Ask Claude anything..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleChatSend();}">
+        <button class="chat-send" onclick="handleChatSend()" ${state.chatLoading?'disabled':''}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }
+
+  // Bottom Nav
+  html += `<div class="bottom-nav">
+    <button class="nav-btn${state.view==='tasks'?' active':''}" onclick="state.view='tasks';render();">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      Tasks
+    </button>
+    <button class="nav-btn${state.view==='chat'?' active':''}" onclick="state.view='chat';render();setTimeout(()=>{const el=document.querySelector('.chat-messages');if(el)el.scrollTop=el.scrollHeight;},50);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      Claude
+    </button>
+  </div>`;
+
+  // Settings Modal
+  if (state.showSettings) {
+    html += `<div class="modal-overlay" onclick="if(event.target===this){state.showSettings=false;render();}">
+      <div class="modal">
+        <h2>⚙️ Settings</h2>
+        <p>Connect Claude to your dashboard for smart task management.</p>
+        <label>Anthropic API Key</label>
+        <input id="api-key-input" type="password" placeholder="sk-ant-..." value="${escapeHtml(state.apiKey)}">
+        <p style="font-size:11px;color:var(--text3);margin-top:-8px;">Get yours at console.anthropic.com → API Keys</p>
+        <div class="modal-btns">
+          <button class="modal-btn secondary" onclick="state.showSettings=false;render();">Cancel</button>
+          <button class="modal-btn primary" onclick="state.apiKey=document.getElementById('api-key-input').value;state.showSettings=false;saveState();render();">Save</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  app.innerHTML = html;
+}
+
+function renderTask(item) {
+  const done = state.checked[item.id];
+  const priClass = done ? '' : ` pri-${item.priority}`;
+  const priLabels = { high:'HIGH', medium:'MED', low:'LOW' };
+  const badgeClass = { high:'badge-high', medium:'badge-medium', low:'badge-low' };
+
+  return `<div class="task${done?' done':''}${priClass}" onclick="toggleCheck('${item.id}')">
+    <div class="checkbox">${done?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
+    <div>
+      <div class="task-text">${escapeHtml(item.text)}</div>
+      <div class="task-meta">
+        <span class="badge ${badgeClass[item.priority]}">${priLabels[item.priority]}</span>
+        ${item.due ? `<span class="badge badge-due">⏰ ${escapeHtml(item.due)}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ==================== INIT ====================
+loadState();
+render();
+
+// Register service worker for offline
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('data:text/javascript;base64,' + btoa(`
+    self.addEventListener('install', e => self.skipWaiting());
+    self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+    self.addEventListener('fetch', e => {
+      if (e.request.url.includes('api.anthropic.com') || e.request.url.includes('fonts.googleapis.com')) return;
+      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+    });
+  `)).catch(() => {});
+}
+</script>
+</body>
+</html>
