@@ -451,7 +451,13 @@ function filterItems(items) {
 function toggleCheck(id) {
   state.checked[id] = !state.checked[id];
   saveState();
+  const scrollEl = document.querySelector('.app-body');
+  const scrollPos = scrollEl ? scrollEl.scrollTop : 0;
   render();
+  requestAnimationFrame(() => {
+    const newScrollEl = document.querySelector('.app-body');
+    if (newScrollEl) newScrollEl.scrollTop = scrollPos;
+  });
 }
 
 // ==================== CLAUDE API ====================
