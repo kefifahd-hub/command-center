@@ -448,15 +448,63 @@ function filterItems(items) {
   return items.filter(i => i.priority === state.filter);
 }
 
+function renderWithScroll() {
+  const scrollEl = document.querySelector('.app-body');
+  const scrollPos = scrollEl ? scrollEl.scrollTop : 0;
+  const app = document.getElementById('app');
+  app.style.visibility = 'hidden';
+  render();
+  const newScrollEl = document.querySelector('.app-body');
+  if (newScrollEl) newScrollEl.scrollTop = scrollPos;
+  app.style.visibility = '';
+}
+
 function toggleCheck(id) {
   state.checked[id] = !state.checked[id];
   saveState();
-  const scrollEl = document.querySelector('.app-body');
-  const scrollPos = scrollEl ? scrollEl.scrollTop : 0;
-  render();
-  requestAnimationFrame(() => {
-    const newScrollEl = document.querySelector('.app-body');
-    if (newScrollEl) newScrollEl.scrollTop = scrollPos;
+  // Targeted DOM update — no full re-render
+  const taskEl = document.querySelector(`[data-id="${id}"]`);
+  if (taskEl) {
+    const done = state.checked[id];
+    const item = getAllItems().find(i => i.id === id);
+    if (!item) return renderWithScroll();
+    taskEl.className = `task${done?' done':''}${done?'':(` pri-${item.priority}`)}`;
+    const cb = taskEl.querySelector('.checkbox');
+    if (cb) cb.innerHTML = done ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+    // Update stats
+    updateStats();
+  } else {
+    renderWithScroll();
+  }
+}
+
+function toggleCat(catId) {
+  state.openCats[catId] = !state.openCats[catId];
+  renderWithScroll();
+}
+
+function updateStats() {
+  const s = getStats();
+  const nums = document.querySelectorAll('.stat-num');
+  if (nums.length >= 3) {
+    nums[0].textContent = s.pct + '%';
+    nums[1].textContent = s.done + '/' + s.total;
+    nums[2].textContent = s.highOpen;
+  }
+  const pf = document.querySelector('.progress-fill');
+  if (pf) pf.style.width = s.pct + '%';
+  // Update category counts
+  CATEGORIES.forEach(cat => {
+    const cs = getCatStats(cat);
+    const headers = document.querySelectorAll('.cat-header');
+    headers.forEach(h => {
+      if (h.querySelector('.cat-name') && h.querySelector('.cat-name').textContent === cat.name) {
+        const countEl = h.querySelector('.cat-count');
+        if (countEl) countEl.textContent = cs.done + '/' + cs.total + ' done';
+        const fillEl = h.querySelector('.cat-progress-fill');
+        if (fillEl) fillEl.style.width = (cs.total > 0 ? (cs.done/cs.total*100) : 0) + '%';
+      }
+    });
   });
 }
 
@@ -572,7 +620,7 @@ function render() {
     // Filters
     const filters = [{k:'all',l:'All'},{k:'open',l:'Open'},{k:'done',l:'Done'},{k:'high',l:'Urgent'}];
     html += `<div class="filters">${filters.map(f =>
-      `<button class="filter-btn${state.filter===f.k?' active':''}" onclick="state.filter='${f.k}';render();">${f.l}</button>`
+      `<button class="filter-btn${state.filter===f.k?' active':''}" onclick="state.filter='${f.k}';renderWithScroll();">${f.l}</button>`
     ).join('')}</div>`;
 
     // Categories
@@ -586,7 +634,7 @@ function render() {
       const filtered = filterItems(allItems);
       if (state.filter !== 'all' && filtered.length === 0) return;
 
-      html += `<div class="cat-header${isOpen?' open':''}" style="border-left-color:${cat.color}" onclick="state.openCats['${cat.id}']=!state.openCats['${cat.id}'];render();">
+      html += `<div class="cat-header${isOpen?' open':''}" style="border-left-color:${cat.color}" onclick="toggleCat('${cat.id}')">
         <span class="cat-icon">${cat.icon}</span>
         <div class="cat-info"><div class="cat-name">${cat.name}</div><div class="cat-count">${cs.done}/${cs.total} done</div></div>
         <div class="cat-progress"><div class="cat-progress-fill" style="width:${cs.total>0?(cs.done/cs.total*100):0}%;background:${cat.color}"></div></div>
@@ -674,7 +722,7 @@ function renderTask(item) {
   const priLabels = { high:'HIGH', medium:'MED', low:'LOW' };
   const badgeClass = { high:'badge-high', medium:'badge-medium', low:'badge-low' };
 
-  return `<div class="task${done?' done':''}${priClass}" onclick="toggleCheck('${item.id}')">
+  return `<div class="task${done?' done':''}${priClass}" data-id="${item.id}" onclick="toggleCheck('${item.id}')">
     <div class="checkbox">${done?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
     <div>
       <div class="task-text">${escapeHtml(item.text)}</div>
